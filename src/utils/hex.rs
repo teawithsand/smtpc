@@ -1,3 +1,5 @@
+// TODO(teawithsand): yup I was tired back at the time I was writing this.
+//  This ofc should be fixed
 const HEX_LOOKUP_TABLE: [&[u8; 2]; 256] = [
     b"00", b"01", b"02", b"03", b"04", b"05", b"06", b"07", b"08", b"09",
     b"0A", b"0B", b"0C", b"0D", b"0E", b"0F", b"10", b"11", b"12", b"13", b"14",
