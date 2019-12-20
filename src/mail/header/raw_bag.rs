@@ -23,7 +23,8 @@ fn is_char_valid_name_char(c: char) -> bool {
         '!'..='\'' => true,
         '*' | '+' | '-' | '.' | '^' | '_' | '`' | '|' | '~' => true,
         '0'..='9' => true,
-        'a'..='z' => true, // TODO(teawithsand) check case(what is alpha?) issues according to https://golang.org/src/net/textproto/reader.go?s=15120:15164#L559
+        // (teawithsand) check case(what is alpha?) issues according to https://golang.org/src/net/textproto/reader.go?s=15120:15164#L559
+        'a'..='z' => true,
         'A'..='Z' => true,
         _ => false,
     }
@@ -44,11 +45,11 @@ fn canonicalize_header_name(text: &str) -> Result<Cow<str>, ()> {
         if c.is_ascii_alphabetic() { // is upper/lower case makes any sense for given char
             if do_upper_case && c.is_ascii_lowercase() {
                 let data = res.to_mut();
-                data[i..i + 1].to_ascii_uppercase();
+                data[i..=i].to_ascii_uppercase();
                 // do_upper_case = false;
             } else if !do_upper_case && c.is_ascii_uppercase() {
                 let data = res.to_mut();
-                data[i..i + 1].to_ascii_lowercase();
+                data[i..=i].to_ascii_lowercase();
             }
         }
         do_upper_case = c == '-';
@@ -248,7 +249,8 @@ impl<'a> RawMailHeaderBag<'a> {
                 break;
             }
             let (key, value) = parser.take_header_name_and_value()?;
-            // borrow checker is too stupid to use HashMap.entry(). Value has to be moved in one place and in the other one at the same time.
+            // looks like borrow checker is too stupid to use HashMap.entry().
+            // Value has to be moved in one place and in the other one at the same time.
             if res.contains_key(&key) {
                 res.get_mut(&key).unwrap().push(value);
             } else {

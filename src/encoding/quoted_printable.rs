@@ -20,7 +20,7 @@ pub enum QuotedPrintableDecodingError {
     InvalidEnd,
 }
 
-// TODO(teawithsand) rewrite to use streamming version on buffer
+// TODO(teawithsand) rewrite to use streaming version on buffer
 /// encode_quoted_printable encodes given string as quited printable 7 bit ascii
 /// # Note
 /// It does not limit char count in each line. It's caller responsibility to do so.
