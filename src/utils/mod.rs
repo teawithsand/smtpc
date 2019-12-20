@@ -1,12 +1,10 @@
 use std::borrow::Cow;
-use std::io;
-use std::io::Read;
 
 pub mod hex;
 pub mod quoted;
 pub mod cc;
 pub mod iter_ext;
-pub mod text_stream;
+// pub mod text_stream;
 /*
 #[inline]
 pub fn read_stream_to_string(r: &mut impl Read) -> Result<String, ()> {

@@ -3,7 +3,6 @@ use std::str::FromStr;
 
 use crate::encoding::base64::Base64Reader;
 use crate::encoding::quoted_printable::QuotedPrintableReader;
-use crate::mail::header::ContentTransferEncoding::Base64;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[derive(Serialize, Deserialize)]

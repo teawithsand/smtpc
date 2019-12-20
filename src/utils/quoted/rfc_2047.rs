@@ -1,24 +1,23 @@
 use std::borrow::Cow;
-use std::io::Cursor;
 
 use crate::encoding::{Decoder, Encoder};
 use crate::encoding::base64::{Base64Decoder, Base64Encoder};
 use crate::encoding::quoted_printable::{QuotedPrintableDecoder, QuotedPrintableEncoder};
 use crate::utils::quoted::QuotedStringError;
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[allow(dead_code)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum RFC2047Encoding {
     Base64,
     QuotedPrintable,
 }
 
 impl RFC2047Encoding {
-    // TODO(teawithsand) write fuzzer which tires to mismatch that
-
+    #[allow(dead_code)]
     /// encoded_len returns size of encoded data when given encoding would be used.
     /// It does not return length of entire result but length of encoded data.
     /// So:  encoded_length - constant_sized_parts
-    pub fn encoded_len(&self, data: &str) -> u64 {
+    pub fn encoded_len(self, data: &str) -> u64 {
         match self {
             RFC2047Encoding::Base64 => {
                 let n = (data.as_bytes().len() as u64) * 4 / 3;
@@ -35,7 +34,7 @@ impl RFC2047Encoding {
         }
     }
 
-    pub fn rfc_letter(&self) -> &'static str {
+    pub fn rfc_letter(self) -> &'static str {
         match self {
             RFC2047Encoding::Base64 => "B",
             RFC2047Encoding::QuotedPrintable => "Q",
@@ -43,6 +42,7 @@ impl RFC2047Encoding {
     }
 }
 
+/*
 /// optimal_encode_rfc_2047 encodes text using either base64 or quoted printable dependent on which result is smaller
 pub fn optimal_encode_rfc_2047(text: &str) -> String {
     let qp_sz = RFC2047Encoding::QuotedPrintable.encoded_len(text);
@@ -53,10 +53,12 @@ pub fn optimal_encode_rfc_2047(text: &str) -> String {
         encode_rfc_2047(text, RFC2047Encoding::QuotedPrintable)
     }
 }
+*/
 
+#[allow(dead_code)]
 pub fn encode_rfc_2047(text: &str, encoding: RFC2047Encoding) -> String {
-    let mut res = String::new();
-    res.push_str("=?UTF-8?");
+    let mut res = String::with_capacity(text.len() + 12);
+    res.push_str("=?UTF-8?"); // no other encoding is allowed in rust string
     res.push_str(encoding.rfc_letter());
     res.push('?');
     match encoding {
@@ -74,11 +76,11 @@ pub fn encode_rfc_2047(text: &str, encoding: RFC2047Encoding) -> String {
 
 pub fn parse_rfc_2047(text: &str) -> Result<String, QuotedStringError> {
     let mut state = 0;
-    let mut charset = &text[..];
+    // let mut charset = &text[..];
     let mut encoding = &text[..];
     let mut enc_text = &text[..];
 
-    let mut charset_start_offset = 0;
+    // let mut charset_start_offset = 0;
     let mut encoding_start_offset = 0;
     let mut enc_text_start_offset = 0;
     let mut byte_offset = 0;
@@ -91,14 +93,14 @@ pub fn parse_rfc_2047(text: &str) -> Result<String, QuotedStringError> {
             }
         } else if state == 1 {
             if c == '?' {
-                charset_start_offset = byte_offset;
+                // charset_start_offset = byte_offset;
                 state = 2;
             } else {
                 return Err(QuotedStringError::UnexpectedEof);
             }
         } else if state == 2 {
             if c == '?' {
-                charset = &text[charset_start_offset..byte_offset];
+                // charset = &text[charset_start_offset..byte_offset];
                 encoding_start_offset = byte_offset + 1;
                 state = 3;
             }

@@ -1,5 +1,4 @@
 use std::convert::TryInto;
-use std::str::FromStr;
 
 enum DateParseState {
     Date,
@@ -35,6 +34,7 @@ fn seconds_to_date(year: u64, month: u64, day: u64) -> Result<u64, &'static str>
     assert!(month >= 1 && month <= 12, "Invalid month: {}", month);
     assert!(day >= 1, "Invalid day: {}", day);
     assert!(day <= days_in_month(month, year), "Invalid day in month: {}", day);
+
     // we assume that we operate on unix ts.
     // Unix ts does not care about leap seconds or stuff like that.
     let month = month - 1;

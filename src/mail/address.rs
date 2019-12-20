@@ -5,14 +5,8 @@ use crate::utils::cc::is_atext;
 use crate::utils::quoted::{
     parse_maybe_rfc_2047,
     parse_maybe_rfc_2047_is_encoded,
-    parse_rfc_2047,
-    QuotedStringError,
-    RFC2047Encoding,
     unquote_string,
 };
-
-// Took from https://github.com/golang/go/blob/master/src/net/mail/message.go
-// TODO(teawithsand) add info about source stuff
 
 #[derive(Debug, Clone, PartialEq)]
 #[derive(Serialize, Deserialize)]
@@ -218,7 +212,7 @@ impl<'a> AddressParser<'a> {
     }
 
     pub fn take_address_spec_may_rollback(&mut self) -> Result<String, EmailAddressParseError> {
-        let mut ea = self.address;
+        let ea = self.address;
         match self.take_address_spec() {
             Err(e) => {
                 self.address = ea;
@@ -373,7 +367,7 @@ impl<'a> AddressParser<'a> {
             Some('>') => {
                 self.take_char().expect("Peek succeed. Take can't fail.");
             }
-            Some(c) => {
+            Some(_c) => {
                 return Err(EmailAddressParseError::InvalidAddressSpec);
             }
         };

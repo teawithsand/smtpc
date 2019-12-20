@@ -13,10 +13,10 @@ pub enum PartReaderState {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
-enum FinalBoundaryState {
-    NoneMatched,
-    FinalMatched,
-    MiddleMatched,
+enum FinalBoundaryStateMatch {
+    None,
+    Final,
+    Middle,
 }
 
 /// PartReader reads single multipart part until it reaches end part
@@ -30,7 +30,7 @@ pub struct PartReader<R> {
     previous_char: Option<u8>,
 
     state: PartReaderState,
-    match_state: FinalBoundaryState,
+    match_state: FinalBoundaryStateMatch,
 
     recovery_buffer: VecDeque<u8>,
 }
@@ -58,7 +58,7 @@ impl<R> PartReader<R> {
             reader,
 
             state: PartReaderState::LookingForBoundary,
-            match_state: FinalBoundaryState::NoneMatched,
+            match_state: FinalBoundaryStateMatch::None,
             recovery_buffer: VecDeque::with_capacity(max(final_boundary.len(), middle_boundary.len())),
 
             previous_char: None,
@@ -102,7 +102,7 @@ impl<R> Read for PartReader<R>
                 // stream may be nonblocking!
                 // byte by byte reading is slow though...
                 // apply buffered reader on this first
-                // TODO(teawithsand) fix case when data is read to buffer and error occurrs and state is corrupted now.
+                // TODO(teawithsand) fix case when data is read to buffer and error occurs and state is corrupted now.
                 //  either store it in to load buffer or cache error and return it later on next read try.
                 let b = self.reader.read(&mut bb)?;
                 debug_assert!(b == 0 || b == 1);
@@ -142,7 +142,7 @@ impl<R> Read for PartReader<R>
             if self.bd.is_done() {
                 // eprintln!("BD is done");
                 match self.match_state {
-                    FinalBoundaryState::NoneMatched => {
+                    FinalBoundaryStateMatch::None => {
                         // eprintln!("None matched");
                         let mm = self.middle_bd.pass_byte(b);
                         let fm = self.final_bd.pass_byte(b);
@@ -156,22 +156,22 @@ impl<R> Read for PartReader<R>
                             }
 
                             (BoundaryDetectorResult::MatchBegin, BoundaryDetectorResult::NoMatch) => {
-                                self.match_state = FinalBoundaryState::MiddleMatched;
+                                self.match_state = FinalBoundaryStateMatch::Middle;
                                 continue;
                             }
                             (BoundaryDetectorResult::MatchBegin, BoundaryDetectorResult::MatchBroke(_)) => {
-                                self.match_state = FinalBoundaryState::MiddleMatched;
+                                self.match_state = FinalBoundaryStateMatch::Middle;
                                 continue;
                             }
 
                             (BoundaryDetectorResult::NoMatch, BoundaryDetectorResult::MatchBegin) => {
                                 // eprintln!("Final matched first");
-                                self.match_state = FinalBoundaryState::FinalMatched;
+                                self.match_state = FinalBoundaryStateMatch::Final;
                                 continue;
                             }
                             (BoundaryDetectorResult::MatchBroke(_), BoundaryDetectorResult::MatchBegin) => {
                                 // eprintln!("Final second first");
-                                self.match_state = FinalBoundaryState::FinalMatched;
+                                self.match_state = FinalBoundaryStateMatch::Final;
                                 continue;
                             }
 
@@ -188,7 +188,7 @@ impl<R> Read for PartReader<R>
                             _ => panic!("Invalid matches state: middle_boundary: {:?} final_boundary: {:?}", mm, fm),
                         }
                     }
-                    FinalBoundaryState::MiddleMatched => {
+                    FinalBoundaryStateMatch::Middle => {
                         // eprintln!("Middle matched");
                         match self.middle_bd.pass_byte(b) {
                             BoundaryDetectorResult::MatchDone => {
@@ -211,7 +211,7 @@ impl<R> Read for PartReader<R>
                             BoundaryDetectorResult::NoMatch => panic!("Middle match invalid state: {:?}", BoundaryDetectorResult::NoMatch),
                         };
                     }
-                    FinalBoundaryState::FinalMatched => {
+                    FinalBoundaryStateMatch::Final => {
                         // eprintln!("Final matched");
                         // eprintln!("final pos: {:?}", self.final_bd.get_pos());
                         match self.final_bd.pass_byte(b) {
@@ -241,7 +241,7 @@ impl<R> Read for PartReader<R>
                 debug_assert_eq!(self.middle_bd.get_pos(), 0);
                 match self.bd.pass_byte(b) {
                     BoundaryDetectorResult::MatchDone => {
-                        self.match_state = FinalBoundaryState::NoneMatched;
+                        self.match_state = FinalBoundaryStateMatch::None;
                         continue;
                     }
                     BoundaryDetectorResult::MatchBegin => {

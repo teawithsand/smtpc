@@ -1,10 +1,6 @@
 use std::borrow::Cow;
-use std::cmp::min;
 use std::collections::HashMap;
-use std::io;
-use std::io::{Error, ErrorKind, Read};
 
-use crate::utils::{BoundaryDetector, BoundaryDetectorResult};
 use crate::utils::cc::is_white_space;
 
 #[derive(Debug, From)]
@@ -33,7 +29,7 @@ fn is_char_valid_name_char(c: char) -> bool {
     }
 }
 
-fn canonicalize_header_name<'a>(text: &'a str) -> Result<Cow<'a, str>, ()> {
+fn canonicalize_header_name(text: &str) -> Result<Cow<str>, ()> {
     for c in text.chars() {
         if !is_char_valid_name_char(c) {
             // when can't canonicalize just don't
@@ -47,11 +43,11 @@ fn canonicalize_header_name<'a>(text: &'a str) -> Result<Cow<'a, str>, ()> {
     for (i, c) in text.chars().enumerate() {
         if c.is_ascii_alphabetic() { // is upper/lower case makes any sense for given char
             if do_upper_case && c.is_ascii_lowercase() {
-                let mut data = res.to_mut();
+                let data = res.to_mut();
                 data[i..i + 1].to_ascii_uppercase();
-                do_upper_case = false;
+                // do_upper_case = false;
             } else if !do_upper_case && c.is_ascii_uppercase() {
-                let mut data = res.to_mut();
+                let data = res.to_mut();
                 data[i..i + 1].to_ascii_lowercase();
             }
         }
@@ -72,9 +68,11 @@ impl<'a> MailHeadersParser<'a> {
         self.text = self.text.trim_start();
     }
 
+    /*
     pub fn take_spaces_and_tabs(&mut self) {
         self.text = self.text.trim_start_matches(|c| c == ' ' || c == '\t');
     }
+    */
 
     pub fn consume(&mut self, c: char) -> bool {
         if let Some(d) = self.peek_char() {
@@ -88,7 +86,7 @@ impl<'a> MailHeadersParser<'a> {
             false
         }
     }
-
+    /*
     pub fn take_newline(&mut self) -> bool {
         let first_char = self.text.chars().nth(0);
         let second_char = self.text.chars().nth(1);
@@ -107,6 +105,7 @@ impl<'a> MailHeadersParser<'a> {
             }
         }
     }
+    */
 
     pub fn is_empty(&self) -> bool {
         self.text.is_empty()
@@ -224,7 +223,7 @@ pub struct RawMailHeaderBag<'a> {
 
 impl<'a> RawMailHeaderBag<'a> {
     #[inline]
-    pub fn container(&self) -> &HashMap<Cow<'a, str>, Vec<Cow<'a, str>>>{
+    pub fn container(&self) -> &HashMap<Cow<'a, str>, Vec<Cow<'a, str>>> {
         &self.container
     }
 

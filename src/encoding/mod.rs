@@ -1,5 +1,4 @@
 use std::fmt::Debug;
-use std::io::Read;
 
 pub mod multipart;
 pub mod quoted_printable;
@@ -27,9 +26,6 @@ pub trait Decoder {
 
     fn decode_to_string(input: &[u8], res: &mut String) -> Result<usize, Self::Error>;
 
-    // not all encodede values are valid strings...
-    // fn decode_to_vec(input: &[u8], res: &mut String) -> Result<usize, Self::Error>;
+    // not all encoded values are valid strings...
+    // fn decode_to_vec(input: &[u8], res: &mut Vec<u8>) -> Result<usize, Self::Error>;
 }
-
-
-// TODO(teawithsand) test all encoders and decoders in submodules here

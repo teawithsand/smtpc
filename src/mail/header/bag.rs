@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::str::FromStr;
 
-use mime::{FromStrError, Mime};
+use mime::FromStrError;
 
 use crate::mail::address::{EmailAddress, EmailAddressParseError};
 use crate::mail::header::{ContentTransferEncoding, MessageIDParseError, parse_message_id, parse_multiple_message_id, RawMailHeaderBag};

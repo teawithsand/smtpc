@@ -1,8 +1,5 @@
-use std::collections::VecDeque;
 use std::io::{self, Cursor, Error, ErrorKind, Read, Write};
 use std::num::ParseIntError;
-use std::str::from_utf8;
-use std::string::FromUtf8Error;
 
 use crate::encoding::{Decoder, Encoder};
 use crate::utils::hex::encode_hex_char;
@@ -56,7 +53,7 @@ pub struct QuotedPrintableEncoder {}
 
 impl Encoder for QuotedPrintableEncoder {
     fn encode_to_string(input: &[u8], res: &mut String) -> usize {
-        let mut ov = Vec::with_capacity(input.len());
+        let ov = Vec::with_capacity(input.len());
         let mut w = Cursor::new(ov);
         {
             let mut qpw = QuotedPrintableWriter::new(&mut w);
@@ -132,7 +129,6 @@ impl<W> Write for QuotedPrintableWriter<W>
                     ([b, 0, 0], 1)
                 }
                 b => {
-                    // TODO(teawithsand) use sth faster. Maybe lookup table?
                     let d = encode_hex_char(b);
                     ([b'=', d[0], d[1]], 3)
                 }

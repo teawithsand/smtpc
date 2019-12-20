@@ -1,5 +1,4 @@
 use std::cmp::min;
-use std::collections::VecDeque;
 use std::io::{self, Error, ErrorKind, Read, Write};
 
 use crate::encoding::{Decoder, Encoder};
@@ -56,7 +55,7 @@ impl<R> Base64Reader<R> {
 }
 
 impl<R: Read> Read for Base64Reader<R> {
-    fn read(&mut self, mut buf: &mut [u8]) -> Result<usize, io::Error> {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, io::Error> {
         if buf.is_empty() {
             return Ok(0);
         }
@@ -268,10 +267,9 @@ impl<W> Write for Base64Writer<W> where W: Write {
             return Ok(0);
         }
         let mut processed_sz = 0;
-        let mut i = 0;
-        // tODO(teawithsand) optimize so can serialize more than 4 bytes at a time through base64::encode
+
+        // TODO(teawithsand) optimize so can serialize more than 4 bytes at a time through base64::encode
         while buf.len() - processed_sz > 0 {
-            i += 1;
             if self.w_buf_sz > 0 {
                 let len = self.writer.write(&self.w_buf[..self.w_buf_sz as usize])?;
                 debug_assert!(len <= self.w_buf_sz as usize);
@@ -375,7 +373,7 @@ mod test {
     fn perform_test_decode_gives_same_result(data: &str, buf_sz: usize) {
         // eprintln!("Testing {:?}", data);
         let res = base64::decode(data);
-        let mut c = Cursor::new(data.as_bytes());
+        let c = Cursor::new(data.as_bytes());
         let mut b64s = Base64Reader::new(c);
         let mut d = Vec::new();
         let st_res = loop {

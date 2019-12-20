@@ -96,8 +96,9 @@ pub fn fuzz_parse_mail_header(data: &[u8]) {
     }
 }
 
+#[allow(dead_code)]
 #[inline(never)]
-fn sink<T: Debug>(v: T) {
+fn sink<T: Debug>(_v: T) {
     // eprintln!("{:?}", v);
 }
 

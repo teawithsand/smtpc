@@ -1,3 +1,5 @@
+// not active code
+/*
 use std::io;
 use std::io::{Error, Read};
 
@@ -21,7 +23,6 @@ pub trait TextStreamExt {
 }
 
 impl<T> TextStreamExt for T where T: Read {
-    // TODO(teawithsand) handle error case - when too much data has been read
     fn read_until_crlf(&mut self, buf: &mut [u8]) -> Result<(usize, LineReadResult), io::Error> {
         let mut last_sz = buf.len();
         let mut state = 0;
@@ -65,4 +66,4 @@ impl<T> TextStreamExt for T where T: Read {
         }
     }
 }
-// TODO(teawithsand) some tests for stream read ext
+*/

@@ -54,6 +54,7 @@ pub fn unquote_string(text: &str, contains_quotes: bool) -> Result<String, Quote
     Ok(out)
 }
 
+#[allow(dead_code)]
 pub fn quote_string(text: &str, emit_quotes: bool) -> String {
     let mut out = String::with_capacity(text.len());
     if emit_quotes {
