@@ -1,5 +1,7 @@
 //! spaceless defines reader which is capable of throwing away white chars
 //! It can be used in order to seamlessly decode base64 from messages as base64 reader does not tolerate newlines
+//!
+//! RIGHT NOW it's not ready quite yet and may fail
 
 use std::io::{Error, Read};
 

@@ -7,12 +7,26 @@ use crate::utils::quoted::{
     parse_maybe_rfc_2047_is_encoded,
     unquote_string,
 };
+use std::cmp::Ordering;
 
-#[derive(Debug, Clone, PartialEq)]
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct EmailAddress<'a> {
     pub name: Cow<'a, str>,
     pub address: Cow<'a, str>,
+}
+
+impl<'a> Ord for EmailAddress<'a> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.address.cmp(&other.address)
+            .then_with(|| self.name.cmp(&other.name))
+    }
+}
+
+impl <'a> PartialOrd for EmailAddress<'a> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 impl<'a> EmailAddress<'a> {
