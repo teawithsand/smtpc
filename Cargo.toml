@@ -9,6 +9,7 @@ homepage = "https://github.com/teawithsand/smtpc"
 readme = "README.MD"
 keywords = ["email", "parser", "quoted-printable", "multipart", "base64"]
 categories = ["email"]
+description = "SMTPC simplifies process of parsing mail messages sent over SMTP"
 
 [features]
 default = ["serialize"]
