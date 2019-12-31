@@ -1,5 +1,8 @@
 use std::str::Chars;
 
+/// CharsOffsetIter is iterator which works just like `iter().enumerate()` iterator but rather than returning
+/// indexes of chars it returns byte offset(AKA index of first byte of given character in string) so slicing string in
+/// finite state machine-like constructs is easy.
 pub struct CharsOffsetIter<'a> {
     chars: Chars<'a>,
     offset: usize,

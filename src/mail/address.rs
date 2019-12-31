@@ -10,9 +10,19 @@ use crate::utils::quoted::{
 
 #[derive(Debug, Clone, PartialEq)]
 #[derive(Serialize, Deserialize)]
-pub struct EmailAddress {
-    pub name: String,
-    pub address: String,
+pub struct EmailAddress<'a> {
+    pub name: Cow<'a, str>,
+    pub address: Cow<'a, str>,
+}
+
+impl<'a> EmailAddress<'a> {
+    /// into_owned makes `EmailAddress` of arbitrary lifetime `'static`
+    pub fn into_owned(self) -> EmailAddress<'static> {
+        EmailAddress {
+            name: Cow::Owned(self.name.into_owned()),
+            address: Cow::Owned(self.address.into_owned()),
+        }
+    }
 }
 
 #[derive(Debug, From)]
@@ -276,7 +286,7 @@ impl<'a> AddressParser<'a> {
     }
 
     pub fn take_comment(&mut self, is_first_consumed: bool) -> Result<String, EmailAddressParseError> {
-        // TODO(teawithsand) fix loop behaviour when flag is set to false
+        // TODO(teawithsand): fix loop behaviour when flag is set to false
         let mut depth = if is_first_consumed { 1 } else { 0 };
         let mut res = String::new();
         loop {
@@ -307,7 +317,7 @@ impl<'a> AddressParser<'a> {
         Ok(res)
     }
 
-    pub fn take_address(&mut self, allow_many: bool) -> Result<Vec<EmailAddress>, EmailAddressParseError> {
+    pub fn take_address(&mut self, allow_many: bool) -> Result<Vec<EmailAddress<'a>>, EmailAddressParseError> {
         if self.is_empty() {
             return Err(EmailAddressParseError::InputEmpty);
         }
@@ -321,8 +331,8 @@ impl<'a> AddressParser<'a> {
                 String::new()
             };
             return Ok(vec![EmailAddress {
-                name: dn,
-                address: spec,
+                name: Cow::Owned(dn),
+                address: Cow::Owned(spec),
             }]);
         }
         // not an addr-spec address.
@@ -373,12 +383,12 @@ impl<'a> AddressParser<'a> {
         };
 
         Ok(vec![EmailAddress {
-            name: dn,
-            address: spec,
+            name: Cow::Owned(dn),
+            address: Cow::Owned(spec),
         }])
     }
 
-    pub fn take_group_list(&mut self) -> Result<Vec<EmailAddress>, EmailAddressParseError> {
+    pub fn take_group_list(&mut self) -> Result<Vec<EmailAddress<'a>>, EmailAddressParseError> {
         self.take_white_chars();
         if self.consume_char(';') {
             self.take_cfws();
@@ -408,7 +418,7 @@ impl<'a> AddressParser<'a> {
         Ok(res)
     }
 
-    pub fn take_address_list(&mut self) -> Result<Vec<EmailAddress>, EmailAddressParseError> {
+    pub fn take_address_list(&mut self) -> Result<Vec<EmailAddress<'a>>, EmailAddressParseError> {
         let mut res = Vec::new();
         loop {
             self.take_white_chars();
@@ -432,25 +442,26 @@ impl<'a> AddressParser<'a> {
     }
 }
 
-impl EmailAddress {
-    pub fn parse_single(address: &str) -> Result<Self, EmailAddressParseError> {
+impl<'a> EmailAddress<'a> {
+    // in fact it's static right now BUT it may change in future
+    pub fn parse_single(address: &'a str) -> Result<EmailAddress<'a>, EmailAddressParseError> {
         let mut pa = AddressParser::new(address);
         let mut res = pa.take_address(false)?;
         assert_eq!(res.len(), 1, "Take address with multiple false returns either one address or error");
         Ok(res.remove(0))
     }
 
-    pub fn parse_group(addresses: &str) -> Result<Vec<Self>, EmailAddressParseError> {
+    pub fn parse_group(addresses: &'a str) -> Result<Vec<EmailAddress<'a>>, EmailAddressParseError> {
         let mut pa = AddressParser::new(addresses);
         pa.take_address_list()
     }
 }
 
-impl FromStr for EmailAddress {
+impl FromStr for EmailAddress<'static> {
     type Err = EmailAddressParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::parse_single(s)
+        EmailAddress::parse_single(s).map(|v| v.into_owned())
     }
 }
 
@@ -478,48 +489,48 @@ mod test {
             ("", None),
             ("\"", None),
             ("asdf@example.com", Some(EmailAddress {
-                name: "".to_string(),
-                address: "asdf@example.com".to_string(),
+                name: Cow::Borrowed(""),
+                address: Cow::Borrowed("asdf@example.com"),
             })),
             ("John Doe <asdf@example.com>", Some(EmailAddress {
-                name: "John Doe".to_string(),
-                address: "asdf@example.com".to_string(),
+                name: Cow::Borrowed("John Doe"),
+                address: Cow::Borrowed("asdf@example.com"),
             })),
             ("John J. Doe <asdf.j.fdsa@example.com>", Some(EmailAddress {
-                name: "John J. Doe".to_string(),
-                address: "asdf.j.fdsa@example.com".to_string(),
+                name: Cow::Borrowed("John J. Doe"),
+                address: Cow::Borrowed("asdf.j.fdsa@example.com"),
             })),
             ("John (middle) Doe <asdf@example.com>", Some(EmailAddress {
-                name: "John (middle) Doe".to_string(),
-                address: "asdf@example.com".to_string(),
+                name: Cow::Borrowed("John (middle) Doe"),
+                address: Cow::Borrowed("asdf@example.com"),
             })),
             ("\"John (middle) Doe\" <asdf@example.com>", Some(EmailAddress {
-                name: "John (middle) Doe".to_string(),
-                address: "asdf@example.com".to_string(),
+                name: Cow::Borrowed("John (middle) Doe"),
+                address: Cow::Borrowed("asdf@example.com"),
             })),
             ("\"John <middle> Doe\" <asdf@example.com>", Some(EmailAddress {
-                name: "John <middle> Doe".to_string(),
-                address: "asdf@example.com".to_string(),
+                name: Cow::Borrowed("John <middle> Doe"),
+                address: Cow::Borrowed("asdf@example.com"),
             })),
             ("John !@M@! Doe <asdf@example.com>", Some(EmailAddress {
-                name: "John !@M@! Doe".to_string(),
-                address: "asdf@example.com".to_string(),
+                name: Cow::Borrowed("John !@M@! Doe"),
+                address: Cow::Borrowed("asdf@example.com"),
             })),
             ("John Doe <asdf@example.com> (asdf)", Some(EmailAddress {
-                name: "John Doe".to_string(),
-                address: "asdf@example.com".to_string(),
+                name: Cow::Borrowed("John Doe"),
+                address: Cow::Borrowed("asdf@example.com"),
             })),
             ("asdf@example.com(John Doe)", Some(EmailAddress {
-                name: "John Doe".to_string(),
-                address: "asdf@example.com".to_string(),
+                name: Cow::Borrowed("John Doe"),
+                address: Cow::Borrowed("asdf@example.com"),
             })),
             ("asdf@example.com (John Doe)", Some(EmailAddress {
-                name: "John Doe".to_string(),
-                address: "asdf@example.com".to_string(),
+                name: Cow::Borrowed("John Doe"),
+                address: Cow::Borrowed("asdf@example.com"),
             })),
             ("<asdf@example.com> (CFWS (cfws))  (another comment)", Some(EmailAddress {
-                name: "".to_string(),
-                address: "asdf@example.com".to_string(),
+                name: Cow::Borrowed(""),
+                address: Cow::Borrowed("asdf@example.com"),
             })),
         ].iter().cloned() {
             // eprintln!("Input: {:?}", i);
@@ -529,7 +540,7 @@ mod test {
                 let pa = parse_address(i).unwrap();
                 assert_eq!(o, vec![pa]);
 
-                // group is able to parse single address as well
+                // group is able to parse_simple single address as well
                 let pag = parse_address_group(i).unwrap();
                 assert_eq!(o, pag);
             } else {
@@ -544,16 +555,16 @@ mod test {
         for (i, o) in [
             ("Jane Doe <jane@example.com>, jdoe@example.org, John Doe <john@example.com>", Some(vec![
                 EmailAddress {
-                    address: "jane@example.com".to_string(),
-                    name: "Jane Doe".to_string(),
+                    address: Cow::Borrowed("jane@example.com"),
+                    name: Cow::Borrowed("Jane Doe"),
                 },
                 EmailAddress {
-                    address: "jdoe@example.org".to_string(),
-                    name: "".to_string(),
+                    address: Cow::Borrowed("jdoe@example.org"),
+                    name: Cow::Borrowed(""),
                 },
                 EmailAddress {
-                    address: "john@example.com".to_string(),
-                    name: "John Doe".to_string(),
+                    address: Cow::Borrowed("john@example.com"),
+                    name: Cow::Borrowed("John Doe"),
                 },
             ]))
         ].iter() {

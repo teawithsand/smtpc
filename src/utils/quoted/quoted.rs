@@ -17,7 +17,6 @@ pub fn unquote_string(text: &str, contains_quotes: bool) -> Result<String, Quote
             }
         } else {
             match c {
-                // TODO(teawithsand) test this guard expression evaluation order
                 '"' | '\\' if is_escaped => {
                     out.push(c);
                     is_escaped = false;

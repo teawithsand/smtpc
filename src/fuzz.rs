@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::io::{Cursor, Read};
 use std::io;
 
@@ -6,9 +7,8 @@ use crate::encoding::multipart::PartReader;
 use crate::encoding::quoted_printable::QuotedPrintableReader;
 use crate::mail::address::EmailAddress;
 use crate::mail::date::parse_date;
-use crate::mail::header::{ParsedMailHeader, RawMailHeaderBag};
+use crate::mail::header::{ParsedMailHeader, RawHeaderBag};
 use crate::utils::quoted::parse_rfc_2047;
-use std::fmt::Debug;
 
 fn drain_reader(r: &mut impl io::Read) {
     loop {
@@ -67,7 +67,7 @@ pub fn fuzz_rfc_2047(data: &[u8]) {
 
 pub fn fuzz_mail_raw_mail_header_bag(data: &[u8]) {
     if let Ok(text) = std::str::from_utf8(data) {
-        let _ = RawMailHeaderBag::parse(text);
+        let _ = RawHeaderBag::parse(text);
     }
 }
 
@@ -75,7 +75,7 @@ pub fn fuzz_parse_mail_header(data: &[u8]) {
     if let Ok(text) = std::str::from_utf8(data) {
         let mut offset = 0;
         let mut found = false;
-        for c in text.chars(){
+        for c in text.chars() {
             if c == ':' {
                 found = true;
                 break;
@@ -85,11 +85,11 @@ pub fn fuzz_parse_mail_header(data: &[u8]) {
         if !found {
             return;
         }
-        if offset == text.len(){
+        if offset == text.len() {
             return;
         }
         let n = &text[..offset];
-        let v = &text[offset+1..];
+        let v = &text[offset + 1..];
         // eprintln!("{:?} {:?}", n, v);
         let mh = ParsedMailHeader::try_parse(n, v);
         sink(mh);

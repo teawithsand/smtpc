@@ -4,7 +4,7 @@ use std::str::FromStr;
 use crate::encoding::base64::Base64Reader;
 use crate::encoding::quoted_printable::QuotedPrintableReader;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 #[derive(Serialize, Deserialize)]
 pub enum ContentTransferEncoding {
     Base64,
@@ -42,7 +42,7 @@ impl FromStr for ContentTransferEncoding {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let text = s.trim();
-        // OPTIMIZEME to case insensitive compares instead of reallocation
+        // OPTIMIZE to case insensitive compares instead of reallocation
         let res = match &text.to_ascii_uppercase()[..] {
             "BINARY" => ContentTransferEncoding::Binary,
             "8BIT" => ContentTransferEncoding::EightBitAscii,
@@ -58,7 +58,7 @@ impl FromStr for ContentTransferEncoding {
 }
 
 impl ContentTransferEncoding {
-    pub fn get_decoder<R>(&self, r: R) -> ContentTransferEncodingDecoder<R> {
+    pub fn get_decoder<R>(self, r: R) -> ContentTransferEncodingDecoder<R> {
         match self {
             // TODO(teawithsand) introduce spaceless here
             ContentTransferEncoding::Base64 => ContentTransferEncodingDecoder::Base64(Base64Reader::new(r)),

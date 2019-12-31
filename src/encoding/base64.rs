@@ -1,8 +1,6 @@
 use std::cmp::min;
 use std::io::{self, Error, ErrorKind, Read, Write};
 
-use crate::encoding::{Decoder, Encoder};
-
 pub struct Base64Reader<R> {
     reader: R,
 
@@ -18,24 +16,6 @@ pub struct Base64Reader<R> {
 }
 
 pub struct Base64Decoder {}
-
-impl Decoder for Base64Decoder {
-    type Error = io::Error;
-
-    fn decode_to_string(input: &[u8], res: &mut String) -> Result<usize, Self::Error> {
-        let new_res = base64::decode(input)
-            .map_err(|_| io::Error::new(ErrorKind::Other, "Invalid base64 input"))?;
-        let new_res_str = String::from_utf8(new_res)
-            .map_err(|_| io::Error::new(ErrorKind::Other, "Given decoded base64 data is not valid utf8 string"))?;
-        let sz = new_res_str.len();
-        if res.len() == 0 {
-            *res = new_res_str;
-        } else {
-            res.push_str(&new_res_str);
-        }
-        Ok(sz)
-    }
-}
 
 impl<R> Base64Reader<R> {
     #[inline]
@@ -158,19 +138,6 @@ pub struct Base64Writer<W> {
 }
 
 pub struct Base64Encoder {}
-
-impl Encoder for Base64Encoder {
-    fn encode_to_string(input: &[u8], res: &mut String) -> usize {
-        let new_res = base64::encode(input);
-        let new_res_sz = new_res.len();
-        if res.is_empty() {
-            *res = new_res;
-        } else {
-            res.push_str(&new_res);
-        }
-        new_res_sz
-    }
-}
 
 impl<W> Base64Writer<W> {
     pub fn new(writer: W, finalize_on_flush: bool) -> Self {

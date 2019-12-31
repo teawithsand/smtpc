@@ -5,7 +5,7 @@ use std::str::FromStr;
 use mime::FromStrError;
 
 use crate::mail::address::{EmailAddress, EmailAddressParseError};
-use crate::mail::header::{ContentTransferEncoding, MessageIDParseError, parse_message_id, parse_multiple_message_id, RawMailHeaderBag};
+use crate::mail::header::{ContentTransferEncoding, MessageIDParseError, parse_message_id, parse_multiple_message_id, RawHeaderBag};
 use crate::utils::quoted::{parse_maybe_rfc_2047, QuotedStringError};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -14,8 +14,8 @@ pub struct ParsedHeaderBag<'a> {
 }
 
 impl<'a> ParsedHeaderBag<'a> {
-    pub fn parse_raw_bag(bag: &'a RawMailHeaderBag<'a>) -> Self {
-        let mut c= HashMap::new();
+    pub fn parse_raw_bag(bag: &'a RawHeaderBag<'a>) -> Self {
+        let mut c = HashMap::new();
         for (k, v) in bag.container().iter() {
             let mut res_vec = Vec::with_capacity(v.len());
             for val in v {
@@ -28,8 +28,38 @@ impl<'a> ParsedHeaderBag<'a> {
         }
     }
 
+    /// get_content_transfer_encoding gets `ContentTransferEncoding` from headers.
+    /// If there are many valid `Content-Transfer-Encoding` headers any of results may be returned by this function.
+    ///
+    /// `None` Is returned when there is no `Content-Transfer-Encoding` header was found or it was not parsed properly.
+    ///
+    /// ```rust
+    ///# use smtpc::mail::header::{RawHeaderBag, ParsedHeaderBag, ContentTransferEncoding};
+    ///const HEADERS: &str = "\
+    ///Subject: SomeSubjectWhatever\r\n\
+    ///Content-Transfer-Encoding: QUOTED-PRINTABLE\r\n";
+    ///let raw = RawHeaderBag::parse(HEADERS).unwrap();
+    ///let parsed = ParsedHeaderBag::parse_raw_bag(&raw);
+    ///assert_eq!(parsed.get_content_transfer_encoding().unwrap(), ContentTransferEncoding::QuotedPrintable);
+    /// ```
+    pub fn get_content_transfer_encoding(&self) -> Option<ContentTransferEncoding> {
+        // Note: we can't lookup hash map as case may vary
+        // right now `RawHeaderBag` does not normalize header names(?)
+        for parsed_header in self.container.values().map(|v| v.iter()).flatten() {
+            if let ParsedMailHeader::ContentTransferEncoding(cte) = parsed_header {
+                return Some(*cte);
+            }
+        }
+        None
+    }
+
     #[inline]
-    pub fn container(&self) -> &HashMap<Cow<'a, str>, Vec<ParsedMailHeader<'a>>>{
+    pub fn into_inner(self) -> HashMap<Cow<'a, str>, Vec<ParsedMailHeader<'a>>> {
+        self.container
+    }
+
+    #[inline]
+    pub fn container(&self) -> &HashMap<Cow<'a, str>, Vec<ParsedMailHeader<'a>>> {
         &self.container
     }
 }
@@ -48,15 +78,15 @@ pub enum MailHeaderParseError {
 pub enum ParsedMailHeader<'a> {
     Subject(Cow<'a, str>),
 
-    ReplyTo(EmailAddress),
-    ReturnPath(EmailAddress),
-    EnvelopeTo(EmailAddress),
+    ReplyTo(EmailAddress<'a>),
+    ReturnPath(EmailAddress<'a>),
+    EnvelopeTo(EmailAddress<'a>),
 
-    Bcc(Vec<EmailAddress>),
-    Cc(Vec<EmailAddress>),
-    To(Vec<EmailAddress>),
+    Bcc(Vec<EmailAddress<'a>>),
+    Cc(Vec<EmailAddress<'a>>),
+    To(Vec<EmailAddress<'a>>),
 
-    From(EmailAddress),
+    From(EmailAddress<'a>),
 
     MessageID(Cow<'a, str>),
 
@@ -66,7 +96,7 @@ pub enum ParsedMailHeader<'a> {
     // for example: Content-Type: multipart/form-data; boundary=some_boundary
     // first one is content type
     ContentType(
-        // for text/plain+xml; encoding=utf8
+        // for example: text/plain+xml; encoding=utf8
         Cow<'a, str>, // text
         Cow<'a, str>, // plain
         Option<Cow<'a, str>>, // xml
@@ -77,21 +107,24 @@ pub enum ParsedMailHeader<'a> {
     ContentLanguage(Cow<'a, str>),
     // Date() // TODO(teawithsand) implement this
 
-    // TODO(teawithsand) DKIM header
-    UnknownHeader(&'a str),
+    // TODO(teawithsand): DKIM header
+
+    UnknownHeader(Cow<'a, str>),
 }
 
 impl<'a> ParsedMailHeader<'a> {
+    /// try_parse parses mail if it's possible or returns `ParsedMailHeader::UnknownHeader`
+    /// which contains contents of given header
     pub fn try_parse(name: &str, content: &'a str) -> Self {
         match Self::parse(name, content) {
             Ok(s) => s,
-            Err(_) => ParsedMailHeader::UnknownHeader(content)
+            Err(_) => ParsedMailHeader::UnknownHeader(Cow::Borrowed(content))
         }
     }
 
     // name is assumed to be canonical
     pub fn parse(name: &str, content: &'a str) -> Result<Self, MailHeaderParseError> {
-        // TODO(teawithsand) introduce case insensitive compare and then accept form which may be not normalized
+        // TODO(teawithsand) introduce case insensitive compare(so string is not copied) and then accept form which may be not normalized
         //  For instance both `Subject` and `subject` are valid names for smtp headers but first one is normalized
         let name = name.to_ascii_lowercase();
         match &name[..] {
@@ -113,13 +146,13 @@ impl<'a> ParsedMailHeader<'a> {
             "cc" => {
                 Ok(ParsedMailHeader::Cc(EmailAddress::parse_group(content)?))
             }
-            "co" => {
+            "to" => {
                 Ok(ParsedMailHeader::To(EmailAddress::parse_group(content)?))
             }
             "from" => {
                 Ok(ParsedMailHeader::From(EmailAddress::parse_single(content)?))
             }
-            "message-ID" => {
+            "message-id" => {
                 Ok(ParsedMailHeader::MessageID(parse_message_id(content)?))
             }
             "in-reply-to" => {
@@ -162,7 +195,7 @@ impl<'a> ParsedMailHeader<'a> {
 mod test {
     use super::*;
 
-    // TODO(teawithsand) tests for parsed mail bag
+// TODO(teawithsand) tests for parsed mail bag
 
     #[test]
     fn test_can_parse_valid_header() {

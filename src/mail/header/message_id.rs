@@ -12,7 +12,7 @@ pub enum MessageIDParseError {
     FoundMany,
 }
 
-// TODO(teawithsand) make it not parse all ids if many found
+// TODO(teawithsand): make it not parse_simple all ids if many found
 pub fn parse_message_id(text: &str) -> Result<Cow<str>, MessageIDParseError> {
     let mut res = parse_multiple_message_id(text)?;
     if res.len() > 1 {

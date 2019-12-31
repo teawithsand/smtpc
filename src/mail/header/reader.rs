@@ -1,12 +1,62 @@
 use std::borrow::Cow;
 use std::cmp::min;
-use std::io::{Error, ErrorKind, Read};
+use std::io::{Cursor, Error, ErrorKind, Read};
 
 use crate::utils::{BoundaryDetector, BoundaryDetectorResult};
 
+/// count_header_bytes tries to answer how many bytes of message are consumed by headers
+/// using `MailHeaderReader`.
+///
+/// # Ok returns
+/// It *DOES NOT* count `\r\n\r\n` sequence at the end of message.
+/// It does not count character by bytes so index is safe to be used with string slicing syntax
+///
+/// # Error
+/// It returns `Err(())` when `MailHeaderReader` detects invalid header structure
+///
+/// # Example
+/// ```rust
+///const SIMPLE_MAIL: &str = "\
+///From: sender@example.com\r\n\
+///To: recipient@example.com\r\n\
+///Subject: Test\r\n\
+///\r\n\
+///This one is plain old email with no fancy features like multipart stuff.";
+///
+///const SIMPLE_MAIL_HEADERS: &str = "\
+///From: sender@example.com\r\n\
+///To: recipient@example.com\r\n\
+///Subject: Test\
+///";
+/// use smtpc::mail::header::count_header_bytes;
+/// let headers_size = count_header_bytes(SIMPLE_MAIL.as_bytes()).unwrap();
+/// assert_eq!(&SIMPLE_MAIL[..headers_size], SIMPLE_MAIL_HEADERS);
+/// ```
+pub fn count_header_bytes(mail: &[u8]) -> Result<usize, ()> {
+    let r = Cursor::new(mail); // no need for buffered reader, cursor is already fast
+    let mut r = MailHeaderReader::new(r, true);
+    let mut offset = 0;
+    let mut buf = [0u8; 512]; // do not zero buffer on each iteration
+    loop {
+        match r.read(&mut buf) {
+            Ok(0) => { // we are done without any error!
+                debug_assert!(offset <= mail.len());
+                return Ok(offset);
+            }
+            Ok(sz) => {
+                offset += sz;
+            }
+            Err(_) => {
+                return Err(());
+            }
+        }
+    }
+}
+
 /// MailHeaderReader is able to separate mail's body part from it's header part.
-/// It reads mail until "\r\n\r\n" byte by byte.
-/// Once this sequence is found it sets finished flag and returns Ok(0) on read tries.
+/// It reads mail until it find `"\r\n\r\n"` sequence byte by byte.
+///
+/// Once this sequence is found it sets finished flag and returns `Ok(0)` on read tries.
 /// Reader then may be recovered and used to read mail body. \r\n\r\n sequence will be already consumed.
 pub struct MailHeaderReader<R> {
     reader: R,
@@ -19,7 +69,7 @@ pub struct MailHeaderReader<R> {
     rd_buf_sz: u8,
 }
 
-// TODO(teawithsand) allow \n boundary not only \r\n. Do it in transparent without flags
+// TODO(teawithsand) allow \n boundary not only \r\n. Do it in transparently without flags
 impl<R> MailHeaderReader<R> {
     // TODO(teawithsand) implement support for single new line(\n instead of \r\n)
     pub fn new(reader: R, in_mail: bool) -> Self {
@@ -94,6 +144,11 @@ impl<R> Read for MailHeaderReader<R> where R: Read {
                     continue;
                 }
             }
+        }
+        // returning Ok(0) is signal that it's non-error EOF
+        // But in our case it may be error eof as well
+        if processed_offset == 0 && self.is_unexpected_eof {
+            return Err(Error::new(ErrorKind::UnexpectedEof, "EOF reached before end of headers"));
         }
         Ok(processed_offset)
     }

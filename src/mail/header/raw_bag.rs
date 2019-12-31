@@ -217,17 +217,28 @@ impl<'a> MailHeadersParser<'a> {
 
 #[derive(Debug, Clone, PartialEq)]
 #[derive(From, Into)]
-pub struct RawMailHeaderBag<'a> {
-    // container: HashMap<&'a str, ParsedMailHeader<'a>>
+pub struct RawHeaderBag<'a> {
     container: HashMap<Cow<'a, str>, Vec<Cow<'a, str>>>,
 }
 
-impl<'a> RawMailHeaderBag<'a> {
+impl<'a> Default for RawHeaderBag<'a> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<'a> RawHeaderBag<'a> {
     #[inline]
     pub fn container(&self) -> &HashMap<Cow<'a, str>, Vec<Cow<'a, str>>> {
         &self.container
     }
 
+    #[inline]
+    pub fn into_inner(self) -> HashMap<Cow<'a, str>, Vec<Cow<'a, str>>> {
+        self.container
+    }
+
+    /// parse parses given text and crates header bag from it
     pub fn parse(text: &'a str) -> Result<Self, MailHeaderParseError> {
         let text = text.trim();
         let mut parser = MailHeadersParser::new(text);
@@ -338,10 +349,10 @@ mod test {
             ),
         ].iter().cloned() {
             if let Some(o) = o {
-                let c: HashMap<_, _> = RawMailHeaderBag::parse(i).unwrap().into();
+                let c: HashMap<_, _> = RawHeaderBag::parse(i).unwrap().into();
                 assert_eq!(c, o);
             } else {
-                RawMailHeaderBag::parse(i).unwrap_err();
+                RawHeaderBag::parse(i).unwrap_err();
             }
         }
     }

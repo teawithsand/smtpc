@@ -1,8 +1,9 @@
 use std::borrow::Cow;
+use std::io::{Cursor, Read, Write};
 
-use crate::encoding::{Decoder, Encoder};
-use crate::encoding::base64::{Base64Decoder, Base64Encoder};
-use crate::encoding::quoted_printable::{QuotedPrintableDecoder, QuotedPrintableEncoder};
+use crate::encoding::base64::{Base64Reader, Base64Writer};
+use crate::encoding::quoted_printable::{QuotedPrintableReader, QuotedPrintableWriter, SoftLineBreaksMode};
+// use crate::encoding::quoted_printable::{QuotedPrintableDecoder, QuotedPrintableEncoder};
 use crate::utils::quoted::QuotedStringError;
 
 #[allow(dead_code)]
@@ -27,6 +28,7 @@ impl RFC2047Encoding {
                     n
                 }
             }
+            // TODO(teawithsand): this DOES NOT count soft line breaks!
             RFC2047Encoding::QuotedPrintable => data.chars().map(|c| match c {
                 c if c.is_ascii() => 1,
                 c => (c.len_utf8() * 3) as u64,
@@ -63,10 +65,29 @@ pub fn encode_rfc_2047(text: &str, encoding: RFC2047Encoding) -> String {
     res.push('?');
     match encoding {
         RFC2047Encoding::QuotedPrintable => {
-            QuotedPrintableEncoder::encode_to_string(text.as_bytes(), &mut res);
+            let mut w = Cursor::new(Vec::new());
+            {
+                let mut w = QuotedPrintableWriter::new(&mut w, SoftLineBreaksMode::Standard);
+                w.write_all(text.as_bytes()).expect("Quoted printable writer filed to write to cursor");
+                w.flush().expect("Quoted printable writer filed to flush to cursor");
+            }
+
+            res.push_str(
+                &String::from_utf8(w.into_inner())
+                    .expect("Quoted printable writer returned invalid utf-8 string")
+            );
         }
         RFC2047Encoding::Base64 => {
-            Base64Encoder::encode_to_string(text.as_bytes(), &mut res);
+            let mut w = Cursor::new(Vec::new());
+            {
+                let mut w = Base64Writer::new(&mut w, true);
+                w.write_all(text.as_bytes()).expect("Quoted printable writer filed to write to cursor");
+                w.flush().expect("Quoted printable writer filed to flush to cursor");
+            }
+            res.push_str(
+                &String::from_utf8(w.into_inner())
+                    .expect("Base64 writer returned invalid utf-8 string")
+            );
         }
     }
     res.push_str("?=");
@@ -131,11 +152,15 @@ pub fn parse_rfc_2047(text: &str) -> Result<String, QuotedStringError> {
         return Err(QuotedStringError::UnexpectedEof);
     }
     let dec_res = if encoding == "B" || encoding == "b" {
-        Base64Decoder::decode(enc_text.as_bytes())
-        // read_stream_to_string(&mut QuotedPrintableReader::new(Cursor::new(enc_text.as_bytes())))
+        let mut res = String::new();
+        Base64Reader::new(Cursor::new(enc_text.as_bytes()))
+            .read_to_string(&mut res)
+            .map(|_| res)
     } else if encoding == "Q" || encoding == "q" {
-        QuotedPrintableDecoder::decode(enc_text.as_bytes())
-        // read_stream_to_string(&mut Base64Reader::new(Cursor::new(enc_text.as_bytes())))
+        let mut res = String::new();
+        QuotedPrintableReader::new(Cursor::new(enc_text.as_bytes()))
+            .read_to_string(&mut res)
+            .map(|_| res)
     } else {
         return Err(QuotedStringError::InvalidEncoding);
     }.map_err(|_| QuotedStringError::DecodingFailed)?;
@@ -184,7 +209,7 @@ mod test {
             (RFC2047Encoding::Base64, "aaaaaaaa", 12),
             (RFC2047Encoding::Base64, "aaaaaaaaa", 12),
         ].iter() {
-            eprintln!("Case: {:?} {:?} {:?}", e, i, o);
+            // eprintln!("Case: {:?} {:?} {:?}", e, i, o);
             assert_eq!(e.encoded_len(i), *o);
         }
     }
