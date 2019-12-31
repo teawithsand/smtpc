@@ -8,7 +8,9 @@ use crate::mail::address::{EmailAddress, EmailAddressParseError};
 use crate::mail::header::{ContentTransferEncoding, MessageIDParseError, parse_message_id, parse_multiple_message_id, RawHeaderBag};
 use crate::utils::quoted::{parse_maybe_rfc_2047, QuotedStringError};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(From, Into)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ParsedHeaderBag<'a> {
     container: HashMap<Cow<'a, str>, Vec<ParsedMailHeader<'a>>>,
 }
@@ -73,8 +75,8 @@ pub enum MailHeaderParseError {
     MimeError(FromStrError),
 }
 
-#[derive(Debug, Clone, PartialEq)]
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum ParsedMailHeader<'a> {
     Subject(Cow<'a, str>),
 
@@ -195,7 +197,7 @@ impl<'a> ParsedMailHeader<'a> {
 mod test {
     use super::*;
 
-// TODO(teawithsand) tests for parsed mail bag
+    // TODO(teawithsand) tests for parsed mail bag
 
     #[test]
     fn test_can_parse_valid_header() {

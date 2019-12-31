@@ -76,6 +76,9 @@ fn seconds_to_date(year: u64, month: u64, day: u64) -> Result<u64, &'static str>
     Ok(r)
 }
 
+// shamelessly stolen(and modified) from:
+// https://github.com/staktrace/mailparse
+/// parse_date tries to parse date in some way which makes some sense
 pub fn parse_date(date: &str) -> Result<u64, &'static str> {
     let mut result = 0;
     let mut month = 0u32;

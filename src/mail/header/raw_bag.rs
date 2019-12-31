@@ -215,8 +215,9 @@ impl<'a> MailHeadersParser<'a> {
 }
 
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[derive(From, Into)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct RawHeaderBag<'a> {
     container: HashMap<Cow<'a, str>, Vec<Cow<'a, str>>>,
 }

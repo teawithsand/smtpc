@@ -5,7 +5,7 @@ use crate::encoding::base64::Base64Reader;
 use crate::encoding::quoted_printable::QuotedPrintableReader;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-#[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum ContentTransferEncoding {
     Base64,
     QuotedPrintable,
