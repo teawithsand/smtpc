@@ -1,4 +1,5 @@
 # SMTPC
+[![Build Status](https://travis-ci.com/teawithsand/smtpc.svg?branch=master)](https://travis-ci.com/teawithsand/smtpc)
 
 SMTPC crate provides utils for parsing messages sent over SMTP and multipart messages
 
