@@ -1,4 +1,4 @@
-use std::io::{self, Cursor, Error, ErrorKind, Read, Write};
+use std::io::{self, Error, ErrorKind, Read, Write};
 use std::num::ParseIntError;
 
 use crate::utils::hex::encode_hex_char;
@@ -186,7 +186,7 @@ impl<R> Read for QuotedPrintableReader<R>
         if buf.is_empty() {
             return Ok(0);
         }
-        let mut original_buf_len = buf.len();
+        let original_buf_len = buf.len();
         loop {
             if buf.is_empty() {
                 break; // we ran out of space to write to

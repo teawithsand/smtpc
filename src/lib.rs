@@ -1,6 +1,8 @@
 //! SMTPC crate provides utilities required to:
 //! - parse messages sent over SMTP encoded with quoted-printable, base64
 //! - has support for reading multipart messages
+//!
+//! Take a look at examples to see how to use it.
 
 
 #[macro_use]

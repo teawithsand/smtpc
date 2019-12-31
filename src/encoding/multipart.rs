@@ -5,14 +5,14 @@ use std::io::{Error, ErrorKind, Read};
 
 use crate::utils::{BoundaryDetector, BoundaryDetectorResult};
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum PartReaderState {
     LookingForBoundary,
     FoundFinalBoundary,
     FoundMiddleBoundary,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum FinalBoundaryStateMatch {
     None,
     Final,
