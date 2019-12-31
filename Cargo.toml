@@ -3,11 +3,19 @@ name = "smtpc"
 version = "0.1.0"
 authors = ["teawithsand <teawithsand@gmail.com>"]
 edition = "2018"
+license-file = "LICENSE.MD"
 repository = "https://github.com/teawithsand/smtpc"
+homepage = "https://github.com/teawithsand/smtpc"
+readme = "README.MD"
+keywords = ["email", "parser", "quoted-printable", "multipart", "base64"]
+categories = ["email"]
 
 [features]
 default = ["serialize"]
 serialize = ["serde", "serde_derive"]
+
+[badges]
+travis-ci = { repository = "teawithsand/smtpc", branch = "master" }
 
 [dependencies]
 derive_more = "0.15.0"
